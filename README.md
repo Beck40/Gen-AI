@@ -12,7 +12,7 @@ My focus is on **Deterministic AI**: building agents that don't just *chat*, but
 
 | Project | Type | Tech Stack | Description |
 | :--- | :--- | :--- | :--- |
-| **[Macro Risk Analyst](./macro-risk-analyst)** | 🤖 SQL Agent | `LangChain` `Llama 3` `SQLite` | An autonomous agent that performs cross-domain risk analysis by joining Corporate and Retail insolvency datasets. Features **Schema Injection** and **Self-Correction** mechanisms to prevent hallucinations. |
+| **[Macro Risk Analyst](./code/Macro_Risk_Analyst.ipynb)** | 🤖 SQL Agent | `LangChain` `Llama 3` `SQLite` | An autonomous agent that performs cross-domain risk analysis by joining Corporate and Retail insolvency datasets. Features **Schema Injection** and **Self-Correction** mechanisms to prevent hallucinations. |
 | *[Future Project]* | 📄 RAG | `Vector DB` `Embeddings` | *Upcoming project...* |
 
 ---
