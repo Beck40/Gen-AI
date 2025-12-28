@@ -1,6 +1,6 @@
 # Generative AI Engineering Portfolio
 
-### 📌 Overview
+### Overview
 This repository documents my engineering journey in **Applied Generative AI**.
 It contains production-ready agents, RAG pipelines, and data analysis tools built with modern LLM frameworks (LangChain, LlamaIndex) and open-source models (Llama 3, Mistral).
 
@@ -8,7 +8,7 @@ My focus is on **Deterministic AI**: building agents that don't just *chat*, but
 
 ---
 
-### 📂 Project List
+### Project List
 
 | Project | Type | Tech Stack | Description |
 | :--- | :--- | :--- | :--- |
@@ -17,7 +17,7 @@ My focus is on **Deterministic AI**: building agents that don't just *chat*, but
 
 ---
 
-### 🧠 Technical Concepts & Mathematical Foundations
+### Technical Concepts & Mathematical Foundations
 
 #### The Core Objective: Next-Token Prediction
 At its heart, a Generative Large Language Model (LLM) is a probabilistic engine. It doesn't know facts; it calculates the statistical likelihood of the next piece of text.
