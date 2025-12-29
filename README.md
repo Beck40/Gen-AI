@@ -9,6 +9,8 @@ My focus is on Deterministic AI: building agents that don't just chat, but relia
 
 ## Project List
 
+**[Technical Guide](./docs/GenAI%20Financial%20Analyst%20-%20Technical%20Guide.pdf)**
+
 | Project | Type | Tech Stack | Description |
 |---------|------|------------|-------------|
 | **[Macro Risk Analyst](./code/Macro_Risk_Analyst.ipynb)** | 🤖 SQL Agent | LangChain Llama 3 SQLite | An autonomous agent that performs cross-domain risk analysis by joining Corporate and Retail insolvency datasets. Features Schema Injection and Self-Correction mechanisms to prevent hallucinations. |
