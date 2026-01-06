@@ -1,4 +1,4 @@
-# Generative AI Engineering Portfolio
+# Generative AI Engineering
 
 ## Overview
 
