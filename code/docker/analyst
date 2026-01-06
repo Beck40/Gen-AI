@@ -1,0 +1,203 @@
+import os
+import sys
+import time
+import pandas as pd
+import sqlite3
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+from langchain_community.utilities import SQLDatabase
+from langchain_community.agent_toolkits import create_sql_agent
+
+# --- 1. SETUP ---
+load_dotenv()
+groq_key = os.getenv("GROQ_API_KEY")
+
+if not groq_key:
+    raise ValueError("CRITICAL: GROQ_API_KEY not found. Ensure it is set in .env")
+
+# Look for files relative to the container root
+BASE_DIR = os.getcwd()
+DATA_DIR = os.path.join(BASE_DIR, "data")
+DB_PATH = os.path.join(DATA_DIR, "macro_risk.db")
+
+# --- 2. DATA CLEANING  ---
+def clean_gov_data(df):
+    """
+    Cleans UK Gov data for verification purposes.
+    Replicates the logic from the original notebook to ensure ground truth is accurate.
+    """
+    # Replace metadata codes with 0
+    df = df.replace({'[z]': 0, '[x]': 0, ':': 0, '..': 0})
+    
+    # Ensure all numerical columns are actually numbers
+    for col in df.columns:
+        if col not in ['period', 'year', 'month']:
+            if df[col].dtype == object:
+                df[col] = df[col].astype(str).str.replace(',', '')
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    return df
+
+def get_verification_data():
+    try:
+        # Load Individual Data
+        ind_path = os.path.join(DATA_DIR, "Individual_Insolvency_November_2025.csv")
+        df_ind = pd.read_csv(ind_path, header=0)
+        
+        rename_ind = {
+            'year': 'year', 'month': 'month',
+            'EW_total_individuals_SA': 'total_ind_insolvencies',
+            'EW_bankruptcy_SA': 'bankruptcies',
+            'EW_IVA_SA': 'ivas',
+            'EW_DRO_SA': 'dros',
+            'EW_self_employed_bankrupt_SA': 'trader_bankruptcies',
+            'EW_creditor_bankrupt_SA': 'forced_bankruptcies',
+            'EW_debtor_bankrupt_SA': 'voluntary_bankruptcies'
+        }
+        df_ind = df_ind.rename(columns=rename_ind)
+        df_ind = clean_gov_data(df_ind)
+
+        # Load Company Data
+        co_path = os.path.join(DATA_DIR, "Company_Insolvency_November_2025.csv")
+        df_co = pd.read_csv(co_path, header=0)
+        df_co.columns = df_co.columns.str.strip().str.lower().str.replace(" ", "_")
+        
+        rename_co = {
+            'year': 'year', 'month': 'month',
+            'total_ew_sa': 'total_co_insolvencies',
+            'compliq_ew_sa': 'compulsory_liquidations',
+            'cvl_ew_sa': 'voluntary_liquidations',
+            'admin_ew_sa': 'administrations'
+        }
+        df_co = df_co.rename(columns=rename_co)
+        df_co = clean_gov_data(df_co)
+        
+        return df_ind, df_co
+    except FileNotFoundError as e:
+        print(f"WARNING: Could not load CSVs for verification: {e}")
+        return None, None
+
+# --- 3. AGENT SETUP  ---
+def run_agent_analysis():
+    print(f"\n--- MACRO RISK ANALYST (Active) ---")
+    print(f"Database: {DB_PATH}")
+
+    if not os.path.exists(DB_PATH):
+        raise FileNotFoundError(f"Database not found at {DB_PATH}. Did you run 'docker build' correctly?")
+
+    db = SQLDatabase.from_uri(f"sqlite:///{DB_PATH}")
+    llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0, groq_api_key=groq_key)
+
+    # The Original Battle-Tested Prompt
+    custom_table_info = """
+    Table: retail_risk
+    Columns: year, month, total_ind_insolvencies, trader_bankruptcies, forced_bankruptcies, voluntary_bankruptcies
+
+    Table: corporate_risk
+    Columns: year, month, total_co_insolvencies, compulsory_liquidations, voluntary_liquidations
+    """
+
+    system_prefix = f"""
+    You are a Risk Analyst.
+    Schema:
+    {custom_table_info}
+
+    CRITICAL RULES:
+    1. AGGREGATION & SYNTAX:
+       - ALWAYS use `SUM(column)` to aggregate monthly data into yearly totals.
+       - CORRECT SQL ORDER: `SELECT ... FROM ... WHERE ... GROUP BY ...`
+       - NEVER place `WHERE` after `GROUP BY`.
+
+    2. JOIN LOGIC (CRITICAL):
+       - When querying both tables, you MUST join on BOTH 'year' AND 'month'.
+       - Correct: `ON t1.year = t2.year AND t1.month = t2.month`
+       - Wrong: `ON t1.year = t2.year` (This multiplies results by 12!)
+       - If you see "ambiguous column name", use `table.column` (e.g., `retail_risk.year`).
+
+    3. QUESTION LOGIC:
+       - "Calculate" / "Trend" (Single Table):
+          - Query: `SELECT year, SUM(column) FROM table WHERE year IN (...) GROUP BY year`
+       - "Ratio": 
+          - Query: `SELECT SUM(t1.total_ind_insolvencies), SUM(t2.total_co_insolvencies) FROM retail_risk t1 JOIN corporate_risk t2 ON t1.year = t2.year AND t1.month = t2.month WHERE t1.year = 2023`
+          - Do NOT group by month. Get the single yearly totals directly.
+          - Calculate ratio in Final Answer.
+       - "Compare" (YEAR-BY-YEAR):
+          - Query MUST include: `SELECT t1.year, SUM(...), SUM(...) ... GROUP BY t1.year`
+          - Example: `SELECT t1.year, SUM(t1.compulsory_liquidations), SUM(t2.forced_bankruptcies) FROM corporate_risk t1 JOIN retail_risk t2 ON t1.year = t2.year AND t1.month = t2.month WHERE t1.year BETWEEN 2015 AND 2023 GROUP BY t1.year`
+          - CRITICAL: Do NOT omit `GROUP BY t1.year`. You need separate rows for each year.
+          - After execution, compare each row individually.
+          - Format: "Year: Corp [Value] vs Ind [Value] -> [Winner] is higher"
+
+    4. EXECUTION:
+       - You MUST execute the query and use the REAL numbers.
+       - NEVER make up numbers or use placeholders like 12345.
+       - If the query fails, fix it and try again.
+
+    5. TERMINATION:
+       - Once you have the SQL observation, your ONLY valid next step is "Final Answer:".
+       - Do NOT output "Action: Thought", "Action: None", or any other action.
+       - Do NOT try to use python or any other tools.
+
+    6. FORMAT:
+       - Final Answer must be based on the SQL result.
+       - Do not output "Action:" after "Final Answer:".
+    """
+
+    agent_executor = create_sql_agent(
+        llm=llm,
+        db=db,
+        agent_type="zero-shot-react-description",
+        prefix=system_prefix,
+        verbose=True, 
+        handle_parsing_errors=True,
+        max_iterations=8
+    )
+
+    questions = [
+        "Calculate the yearly total Trader Bankruptcies for 2020, 2021, 2022, and 2023.",
+        "Compare the yearly total Company Compulsory Liquidations vs Individual Forced Bankruptcies for 2015-2023.",
+        "For the year 2023, what is the ratio of Total Individual Insolvencies to Total Corporate Insolvencies?"
+    ]
+
+    for q in questions:
+        print(f"\nAnalyst: {q}")
+        try:
+            response = agent_executor.invoke(q)
+            print(f"Agent: {response['output']}")
+        except Exception as e:
+            print(f"Error: {e}")
+        time.sleep(3)
+
+# --- 4. GROUND TRUTH VERIFICATION  ---
+def verify_ground_truth():
+    print("\n--- GROUND TRUTH VERIFICATION ---")
+    
+    # 1. Load DataFrames from LOCAL CSVs 
+    df_ind, df_co = get_verification_data()
+    
+    if df_ind is None or df_co is None:
+        print("Skipping verification due to missing CSVs.")
+        return
+
+    # Q1: Trader Bankruptcies 2020-2023
+    print("\n[Q1 Check] Trader Bankruptcies (Pandas Ground Truth):")
+    q1_ans = df_ind[df_ind['year'].isin([2020, 2021, 2022, 2023])].groupby('year')['trader_bankruptcies'].sum()
+    print(q1_ans)
+
+    # Q2: Compulsory Liquidations vs Forced Bankruptcies 2015-2023
+    print("\n[Q2 Check] Corp Liq vs Ind Forced (Pandas Ground Truth):")
+    years_q2 = range(2015, 2024)
+    q2_co = df_co[df_co['year'].isin(years_q2)].groupby('year')['compulsory_liquidations'].sum()
+    q2_ind = df_ind[df_ind['year'].isin(years_q2)].groupby('year')['forced_bankruptcies'].sum()
+    q2_df = pd.DataFrame({'Compulsory Liq': q2_co, 'Forced Bankruptcies': q2_ind})
+    print(q2_df)
+
+    # Q3: Ratio 2023
+    print("\n[Q3 Check] 2023 Ratio (Pandas Ground Truth):")
+    ind_2023 = df_ind[df_ind['year'] == 2023]['total_ind_insolvencies'].sum()
+    co_2023 = df_co[df_co['year'] == 2023]['total_co_insolvencies'].sum()
+    ratio = ind_2023 / co_2023 if co_2023 else 0
+    print(f"Ind: {ind_2023}, Corp: {co_2023}, Ratio: {ratio:.2f}")
+
+if __name__ == "__main__":
+    run_agent_analysis()
+    verify_ground_truth()
