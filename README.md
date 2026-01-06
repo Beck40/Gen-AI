@@ -10,6 +10,7 @@ My focus is on Deterministic AI: building agents that don't just chat, but relia
 ## Project List
 
 **[Technical Guide](./docs/GenAI%20Financial%20Analyst%20-%20Technical%20Guide.pdf)**
+**[Deployment Guide](./docs/Macro%20Risk%20AI%20Agent%20-%20Deployment%20Guide.pdf)**
 
 | Project | Type | Tech Stack | Description |
 |---------|------|------------|-------------|
