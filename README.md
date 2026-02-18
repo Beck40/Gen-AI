@@ -14,8 +14,9 @@ My focus is on Deterministic AI: building agents that don't just chat, but relia
 
 | Project | Type | Tech Stack | Description |
 |---------|------|------------|-------------|
-| **[Macro Risk Analyst](./code/Macro_Risk_Analyst.ipynb)** | 🤖 SQL Agent | LangChain Llama 3 SQLite | An autonomous agent that performs cross-domain risk analysis by joining Corporate and Retail insolvency datasets. Features Schema Injection and Self-Correction mechanisms to prevent hallucinations. |
-| **[Financial Insight Engine](./code/rag_agent.py)** | 📄 RAG Agent | ChromaDB HuggingFace | A citation-aware retrieval system for digesting complex financial reports (PDFs) and extracting strategic outlooks. Features a manual ingestion pipeline for preserving page-level metadata. |
+| **[Macro Risk Analyst](./code/Macro_Risk_Analyst.ipynb)** | 🤖 SQL Agent | LangChain, Llama 3, SQLite | An autonomous agent that performs cross-domain risk analysis by joining Corporate and Retail insolvency datasets. Features Schema Injection and Self-Correction mechanisms to prevent hallucinations. |
+| **[Financial Insight Engine](./code/rag_agent.py)** | 📄 RAG Agent | ChromaDB, HuggingFace | A citation-aware retrieval system for digesting complex financial reports (PDFs) and extracting strategic outlooks. Features a manual ingestion pipeline for preserving page-level metadata. |
+| **[Transaction Log Mining](./code/Transaction_log_mining.ipynb)** | 🗨️ NLP |Llama 3 Groq, KMeans, HDBSCAN, SentenceTransformer | A log-mining system for unstructured customer complaint narratives to identify systemic payment friction. Uses LLMs to extract technical root causes and density-based clustering to automate incident detection.|
 
 ## Technical Concepts & Mathematical Foundations
 
