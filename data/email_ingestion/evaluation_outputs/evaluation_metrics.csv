@@ -1,0 +1,11 @@
+field,metric,score,score_percent
+company_name,Exact match accuracy (strict),0.98,98.0
+revenue,Exact match accuracy (strict),0.94,94.0
+industry,Semantic match accuracy,0.98,98.0
+countries,Macro precision,0.9866666666666667,98.67
+countries,Macro recall,1.0,100.0
+countries,Macro F1,0.99,99.0
+requested_coverages,Macro precision,0.98,98.0
+requested_coverages,Macro recall,0.98,98.0
+requested_coverages,Macro F1,0.98,98.0
+record,Malformed / failed rate,0.0,0.0
