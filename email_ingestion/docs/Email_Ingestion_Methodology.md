@@ -52,33 +52,3 @@ The 6% error rate in Revenue and minor discrepancies in other fields highlighted
 3. **Entity Suffix Truncation (e.g., Submission E047)**
    * *Issue:* The model extracted "Maplecrest Industries Ltd" from an email signature, missing the formal "Systems" suffix present in the ground truth.
    * *Resolution:* fuzzy matching against corporate registries (e.g., Companies House).
-
----
-
-## 4: Production Handover & Feature Tickets
-To safely scale this pipeline to handle 10,000+ daily submissions, the deterministic notebook prototype must be transitioned into an autonomous, event-driven agentic workflow. The following engineering tickets outline the remaining technical architecture.
-
-### Ticket ENG-101: Implement Pydantic Schema & Structured Decoding
-* **Context:** The PoC relied on markdown block stripping and post-hoc JSON parsing. Production requires absolute type-safety guarantees to prevent database insertion failures.
-* **Acceptance Criteria:** 
-  * Integrate constrained decoding libraries (e.g., `instructor` or `Outlines`).
-  * Bind the extraction prompt to strict Pydantic models.
-  * Ensure missing or ambiguous fields deserialize cleanly to `None` or `[]` rather than hallucinating generic strings.
-
-### Ticket ENG-102: LLM Rate-Limit Management
-* **Context:** The PoC utilised sequential execution with static delays (`time.sleep(20)`) to respect API quotas. This will bottleneck under high commercial volume.
-* **Acceptance Criteria:** 
-  * Wrap the extraction logic in an asynchronous worker (e.g., Celery/Redis or AWS Lambda) triggered by an ingestion message queue (SQS/Kafka).
-  * Implement dynamic rate-limit handling with exponential backoff and jitter to maximise throughput within token-per-minute (TPM) limits.
-
-### Ticket ENG-103: Different file formats for attachments (PDFs/Excel)
-* **Context:** The PoC processed pre-cleaned `.md` files. Real-world broker attachments include scanned PDFs and complex Excel loss runs.
-* **Acceptance Criteria:** 
-  * Deploy a document parser as a pre-processing step.
-  * The parser must preserve horizontal table headers across page breaks to ensure financial columns remain perfectly aligned for the LLM.
-
-### Ticket ENG-104: Confidence Scoring & Manual Underwriter Reviews
-* **Context:** Fully automated ingestion carries severe financial risk if ambiguous revenue figures (like the projections in E039) are ingested silently.
-* **Acceptance Criteria:** 
-  * Extract token log-probabilities alongside the JSON data to generate a confidence score (0.0 to 1.0).
-  * Automatically route submissions scoring below `0.85`, or those with conflicting financial tables, to an Underwriter Review UI with the source text explicitly highlighted.
