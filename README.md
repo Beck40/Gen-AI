@@ -11,9 +11,9 @@ The focus is on Deterministic AI: building agents that don't just chat, but reli
 
 | Project | Type | Tech Stack | Description |
 |---------|------|------------|-------------|
-| **[Macro Risk Analyst](./macro_risk_agent.ipynb)** | 🤖 SQL Agent | LangChain, Llama 3, SQLite | An autonomous agent that performs cross-domain risk analysis by joining Corporate and Retail insolvency datasets. Features Schema Injection and Self-Correction mechanisms to prevent hallucinations. |
-| **[Financial Insight Engine](./macro_risk_agent.py)** | 📄 RAG Agent | ChromaDB, HuggingFace | A citation-aware retrieval system for digesting complex financial reports (PDFs) and extracting strategic outlooks. Features a manual ingestion pipeline for preserving page-level metadata. |
-| **[Transaction Log Mining](./Transaction_log_mining.ipynb)** | 🗨️ NLP |Llama 3 Groq, KMeans, HDBSCAN, SentenceTransformer | A log-mining system for unstructured customer complaint narratives to identify systemic payment friction. Uses LLMs to extract technical root causes and density-based clustering to automate incident detection.|
+| **[Macro Risk Analyst](./macro_risk_agent)** | 🤖 SQL Agent | LangChain, Llama 3, SQLite | An autonomous agent that performs cross-domain risk analysis by joining Corporate and Retail insolvency datasets. Features Schema Injection and Self-Correction mechanisms to prevent hallucinations. |
+| **[Financial Insight Engine](./macro_risk_agent)** | 📄 RAG Agent | ChromaDB, HuggingFace | A citation-aware retrieval system for digesting complex financial reports (PDFs) and extracting strategic outlooks. Features a manual ingestion pipeline for preserving page-level metadata. |
+| **[Transaction Log Mining](./transaction_log_mining)** | 🗨️ NLP |Llama 3 Groq, KMeans, HDBSCAN, SentenceTransformer | A log-mining system for unstructured customer complaint narratives to identify systemic payment friction. Uses LLMs to extract technical root causes and density-based clustering to automate incident detection.|
 | **[Automated Email Ingestion](./email_ingestion)** | 📥 Hybrid Extraction | Groq, Python, JSON Schema | An automated document ingestion pipeline combining zero-shot LLM entity extraction with deterministic Python heuristics to triage cross-document contradictions. |
 
 ## Technical Concepts & Mathematical Foundations
